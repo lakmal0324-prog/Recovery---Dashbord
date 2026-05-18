@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Recovery">
+<meta name="theme-color" content="#0a0f1e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Recovery Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --bg2: #0d1b2a;
+    --card: rgba(255,255,255,0.04);
+    --border: rgba(100,180,255,0.12);
+    --blue: #1e88e5;
+    --blue-light: #90caf9;
+    --green: #66bb6a;
+    --green-light: #a5d6a7;
+    --yellow: #ffb300;
+    --red: #ef5350;
+    --text: #e8f0fe;
+    --muted: #546e7a;
+    --muted2: #78909c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, #0a1628 100%);
+    color: var(--text);
+    font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+  }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input { -webkit-appearance: none; border-radius: 0; }
+  .header {
+    background: rgba(13,33,55,0.95);
+    border-bottom: 1px solid rgba(100,180,255,0.15);
+    padding: 14px 18px;
+    padding-top: calc(14px + env(safe-area-inset-top));
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #1565c0, #0288d1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: #fff;
+    box-shadow: 0 4px 15px rgba(21,101,192,0.4);
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 15px; font-weight: 700; color: var(--blue-light); }
+  .header-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .saved-badge {
+    background: rgba(0,230,118,0.15); border: 1px solid #00e676;
+    color: #00e676; padding: 5px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; display: none;
+  }
+  .saved-badge.show { display: block; animation: fadeIn 0.2s ease; }
+  .tabs {
+    display: flex; border-bottom: 1px solid rgba(100,180,255,0.1);
+    background: rgba(13,33,55,0.6); overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 13px 18px; background: none; border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted); font-weight: 400; cursor: pointer;
+    font-size: 13px; white-space: nowrap; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .tab.active { border-bottom-color: var(--blue); color: var(--blue-light); font-weight: 700; }
+  .content {
+    padding: 18px 16px;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom));
+    max-width: 560px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--blue-light); margin-bottom: 14px;
+  }
+  .edit-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .edit-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+  .edit-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .edit-icon.blue { background: rgba(21,101,192,0.15); border: 1px solid rgba(21,101,192,0.3); }
+  .edit-icon.green { background: rgba(46,125,50,0.15); border: 1px solid rgba(46,125,50,0.3); }
+  .edit-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .edit-value { font-size: 19px; font-weight: 800; color: var(--text); }
+  .edit-input {
+    background: rgba(21,101,192,0.15); border: 1px solid var(--blue);
+    border-radius: 8px; color: #fff; font-size: 17px; font-weight: 700;
+    padding: 6px 10px; width: 150px; outline: none; font-family: inherit;
+  }
+  .hint { font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .btn-edit {
+    background: rgba(30,136,229,0.15); border: 1px solid rgba(30,136,229,0.3);
+    border-radius: 10px; color: #64b5f6; padding: 8px 12px;
+    cursor: pointer; font-size: 12px; font-weight: 600;
+    white-space: nowrap; font-family: inherit;
+  }
+  .btn-save {
+    background: var(--blue); border: none; border-radius: 8px;
+    color: #fff; padding: 8px 12px; cursor: pointer;
+    font-weight: 700; font-size: 12px; font-family: inherit;
+  }
+  .btn-cancel {
+    background: rgba(255,255,255,0.08); border: none; border-radius: 8px;
+    color: var(--blue-light); padding: 8px 10px;
+    cursor: pointer; font-size: 12px; font-family: inherit;
+  }
+  .btn-row { display: flex; gap: 6px; }
+  .summary-card {
+    background: linear-gradient(135deg, rgba(21,101,192,0.2), rgba(2,136,209,0.1));
+    border: 1px solid rgba(30,136,229,0.25);
+    border-radius: 20px; padding: 20px;
+  }
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { font-size: 12px; color: var(--muted2); }
+  .summary-val { font-size: 15px; font-weight: 700; }
+  .progress-bar-wrap { margin-bottom: 4px; }
+  .progress-meta { display: flex; justify-content: space-between; margin-bottom: 7px; }
+  .progress-meta-label { font-size: 12px; color: var(--muted2); font-weight: 600; }
+  .progress-meta-val { font-size: 14px; font-weight: 800; }
+  .progress-track { border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.08); }
+  .progress-fill { height: 100%; border-radius: 8px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+  .achieved { text-align: center; margin-top: 8px; color: #00e676; font-weight: 700; font-size: 13px; }
+  .commission-banner {
+    background: linear-gradient(135deg, rgba(46,125,50,0.3), rgba(27,94,32,0.2));
+    border: 1px solid rgba(102,187,106,0.3);
+    border-radius: 16px; padding: 20px; text-align: center;
+  }
+  .commission-total-label { font-size: 11px; color: #81c784; letter-spacing: 1px; margin-bottom: 6px; }
+  .commission-total-val { font-size: 30px; font-weight: 900; color: var(--green-light); }
+  .commission-count { font-size: 11px; color: #4caf50; margin-top: 4px; }
+  .form-label { font-size: 11px; color: var(--muted); font-weight: 600; display: block; margin-bottom: 6px; letter-spacing: 0.5px; }
+  .form-input {
+    width: 100%; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(100,180,255,0.2); border-radius: 10px;
+    color: var(--text); font-size: 15px; font-weight: 600;
+    padding: 12px 14px; outline: none; font-family: inherit;
+  }
+  .form-group { margin-bottom: 12px; }
+  .form-hint { font-size: 11px; color: var(--muted2); margin-top: 5px; }
+  .form-hint span { color: var(--yellow); font-weight: 700; }
+  .preview-box { border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .preview-box.good { background: rgba(46,125,50,0.2); border: 1px solid rgba(102,187,106,0.3); }
+  .preview-box.bad { background: rgba(198,40,40,0.15); border: 1px solid rgba(239,83,80,0.3); }
+  .preview-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .preview-row:last-child { margin-bottom: 0; }
+  .preview-key { font-size: 12px; color: var(--muted2); }
+  .preview-val { font-size: 13px; font-weight: 700; }
+  .btn-add {
+    width: 100%; border: none; border-radius: 12px;
+    padding: 14px; font-weight: 700; font-size: 14px;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+  }
+  .btn-add.active { background: linear-gradient(135deg, #1b5e20, #2e7d32); color: var(--green-light); }
+  .btn-add.inactive { background: rgba(255,255,255,0.05); color: #37474f; cursor: not-allowed; }
+  .rules-row { display: flex; gap: 10px; }
+  .rule-box { flex: 1; border-radius: 10px; padding: 12px; text-align: center; }
+  .rule-box.yellow { background: rgba(255,179,0,0.1); border: 1px solid rgba(255,179,0,0.2); }
+  .rule-box.green { background: rgba(102,187,106,0.1); border: 1px solid rgba(102,187,106,0.2); }
+  .rule-rate { font-size: 22px; font-weight: 900; }
+  .rule-rate.yellow { color: var(--yellow); }
+  .rule-rate.green { color: var(--green); }
+  .rule-desc { font-size: 10px; color: var(--muted2); margin-top: 4px; }
+  .history-header { display: flex; justify-content: space-between; align-items: center; }
+  .history-total { background: rgba(46,125,50,0.2); border: 1px solid rgba(102,187,106,0.2); border-radius: 10px; padding: 6px 12px; }
+  .history-total span { font-size: 12px; color: #81c784; font-weight: 700; }
+  .history-item {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  }
+  .history-item-left { flex: 1; min-width: 0; }
+  .history-badges { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .rate-badge { border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+  .rate-badge.green { background: rgba(102,187,106,0.2); border: 1px solid rgba(102,187,106,0.4); color: var(--green); }
+  .rate-badge.yellow { background: rgba(255,179,0,0.2); border: 1px solid rgba(255,179,0,0.4); color: var(--yellow); }
+  .history-date { font-size: 11px; color: var(--muted); }
+  .history-note { font-size: 11px; color: var(--muted2); }
+  .history-amounts { display: flex; gap: 14px; flex-wrap: wrap; }
+  .history-amount-item div:first-child { font-size: 10px; color: #455a64; }
+  .history-amount-item div:last-child { font-size: 13px; font-weight: 600; }
+  .history-right { text-align: right; flex-shrink: 0; }
+  .history-comm { font-size: 16px; font-weight: 800; color: var(--green-light); }
+  .btn-delete {
+    background: none; border: none; cursor: pointer;
+    color: #c62828; font-size: 11px; margin-top: 6px;
+    padding: 2px 4px; font-family: inherit;
+  }
+  .empty { text-align: center; padding: 40px 20px; color: #37474f; font-size: 14px; line-height: 1.8; }
+  @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">R</div>
+    <div>
+      <div class="header-title">Recovery Dashboard</div>
+      <div class="header-sub" id="lastSaved">No data yet</div>
+    </div>
+  </div>
+  <div class="saved-badge" id="savedBadge">✓ Saved</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('target')">🎯 Target</button>
+  <button class="tab" onclick="switchTab('commission')">💰 Commission</button>
+  <button class="tab" onclick="switchTab('history')">📋 History</button>
+</div>
+
+<div class="content">
+
+  <div class="tab-panel active" id="tab-target">
+    <div class="card">
+      <div class="edit-row">
+        <div class="edit-left">
+          <div class="edit-icon blue">📂</div>
+          <div style="min-width:0;flex:1">
+            <div class="edit-label">TOTAL ASSIGNMENT</div>
+            <div class="edit-value" id="assignmentDisplay">Rs. 0.00</div>
+            <div id="assignmentInputWrap" style="display:none">
+              <input class="edit-input" type="number" id="assignmentInput" placeholder="Enter amount" onkeydown="handleKey(event,'assignment')">
+            </div>
+          </div>
+        </div>
+        <div class="btn-row" id="assignmentBtns">
+          <button class="btn-edit" onclick="startEdit('assignment')">✏️ Edit</button>
+        </div>
+        <div class="btn-row" id="assignmentSaveBtns" style="display:none">
+          <button class="btn-save" onclick="saveField('assignment')">Save</button>
+          <button class="btn-cancel" onclick="cancelEdit('assignment')">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="edit-row">
+        <div class="edit-left">
+          <div class="edit-icon green">✅</div>
+          <div style="min-width:0;flex:1">
+            <div class="edit-label">TOTAL COLLECTED</div>
+            <div class="edit-value" id="collectedDisplay">Rs. 0.00</div>
+            <div id="collectedInputWrap" style="display:none">
+              <input class="edit-input" type="number" id="collectedInput" placeholder="Enter amount" onkeydown="handleKey(event,'collected')">
+            </div>
+          </div>
+        </div>
+        <div class="btn-row" id="collectedBtns">
+          <button class="btn-edit" onclick="startEdit('collected')">✏️ Edit</button>
+        </div>
+        <div class="btn-row" id="collectedSaveBtns" style="display:none">
+          <button class="btn-save" onclick="saveField('collected')">Save</button>
+          <button class="btn-cancel" onclick="cancelEdit('collected')">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="summarySection" style="display:none; flex-direction:column; gap:14px;">
+      <div class="summary-card">
+        <div class="card-title">🎯 TARGET BREAKDOWN</div>
+        <div class="summary-row">
+          <span class="summary-label">Total Assignment</span>
+          <span class="summary-val" style="color:#90caf9" id="s-assignment">Rs. 0.00</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">70% Target Amount</span>
+          <span class="summary-val" style="color:#ffb300" id="s-target">Rs. 0.00</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Total Collected</span>
+          <span class="summary-val" style="color:#66bb6a" id="s-collected">Rs. 0.00</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Remaining to Target</span>
+          <span class="summary-val" id="s-remaining">Rs. 0.00</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="progress-bar-wrap">
+          <div class="progress-meta">
+            <span class="progress-meta-label">Progress to 70% Target</span>
+            <span class="progress-meta-val" id="prog1-pct" style="color:#ff6b35">0%</span>
+          </div>
+          <div class="progress-track" style="height:14px">
+            <div class="progress-fill" id="prog1-fill" style="width:0%;height:14px;background:linear-gradient(90deg,#ff6b35aa,#ff6b35);box-shadow:0 0 12px #ff6b3566;"></div>
+          </div>
+          <div class="achieved" id="achievedMsg" style="display:none">🎉 Target Achieved!</div>
+        </div>
+        <div style="height:16px"></div>
+        <div class="progress-bar-wrap">
+          <div class="progress-meta">
+            <span class="progress-meta-label">Progress to 100% Assignment</span>
+            <span class="progress-meta-val" id="prog2-pct" style="color:#90caf9">0%</span>
+          </div>
+          <div class="progress-track" style="height:10px">
+            <div class="progress-fill" id="prog2-fill" style="width:0%;height:10px;background:linear-gradient(90deg,#1565c0,#0288d1);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="emptyTarget" class="empty">👆 Enter your Total Assignment amount to get started</div>
+  </div>
+
+  <div class="tab-panel" id="tab-commission">
+    <div class="commission-banner">
+      <div class="commission-total-label">TOTAL COMMISSION EARNED</div>
+      <div class="commission-total-val" id="totalCommDisplay">Rs. 0.00</div>
+      <div class="commission-count" id="commCountDisplay">0 entries</div>
+    </div>
+    <div class="card">
+      <div class="card-title">➕ Add Commission Entry</div>
+      <div class="form-group">
+        <label class="form-label">RENTAL AMOUNT (Rs.)</label>
+        <input class="form-input" type="number" id="rentalAmt" placeholder="e.g. 10000" oninput="updatePreview()">
+        <div class="form-hint" id="minHint" style="display:none">Min to qualify (1.2x): <span id="minVal"></span></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">COLLECTED AMOUNT (Rs.)</label>
+        <input class="form-input" type="number" id="collectedAmt" placeholder="e.g. 15000" oninput="updatePreview()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">NOTE (Optional)</label>
+        <input class="form-input" type="text" id="commNote" placeholder="Customer name / loan ID..." style="font-size:13px;font-weight:400;">
+      </div>
+      <div id="previewBox" style="display:none" class="preview-box">
+        <div class="preview-row">
+          <span class="preview-key">Rentals collected</span>
+          <span class="preview-val" id="prev-rentals"></span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-key">Commission rate</span>
+          <span class="preview-val" id="prev-rate"></span>
+        </div>
+        <div class="preview-row" id="prev-amt-row">
+          <span class="preview-key">Commission amount</span>
+          <span class="preview-val" style="font-size:16px;color:#a5d6a7" id="prev-amt"></span>
+        </div>
+      </div>
+      <button class="btn-add inactive" id="addBtn" onclick="addCommission()">Enter valid amounts to add</button>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">COMMISSION RULES</div>
+      <div class="rules-row">
+        <div class="rule-box yellow">
+          <div class="rule-rate yellow">2%</div>
+          <div class="rule-desc">1.2x – 1.99x rentals</div>
+        </div>
+        <div class="rule-box green">
+          <div class="rule-rate green">3%</div>
+          <div class="rule-desc">2x+ rentals</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-history">
+    <div class="history-header">
+      <div class="card-title" style="margin-bottom:0">Commission History</div>
+      <div class="history-total"><span id="histTotalDisplay">Total: Rs. 0.00</span></div>
+    </div>
+    <div id="historyList">
+      <div class="empty">No commission entries yet.<br><span style="font-size:12px">Add entries from the Commission tab.</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'recovery_dashboard_v1';
+let state = { totalAssignment: 0, totalCollected: 0, commissions: [], lastUpdated: null };
+try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) state = JSON.parse(raw); } catch(e) {}
+
+function persist() {
+  state.lastUpdated = new Date().toISOString();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  updateLastSaved(); flashSaved();
+}
+function updateLastSaved() {
+  if (state.lastUpdated) {
+    const d = new Date(state.lastUpdated);
+    document.getElementById('lastSaved').textContent = 'Saved: ' + d.toLocaleString('en-LK', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  }
+}
+function flashSaved() {
+  const el = document.getElementById('savedBadge');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+function fmt(n) { return 'Rs. ' + Number(n||0).toLocaleString('en-LK', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function switchTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+function startEdit(field) {
+  document.getElementById(field + 'Display').style.display = 'none';
+  document.getElementById(field + 'InputWrap').style.display = 'block';
+  document.getElementById(field + 'Btns').style.display = 'none';
+  document.getElementById(field + 'SaveBtns').style.display = 'flex';
+  const inp = document.getElementById(field + 'Input');
+  inp.value = state[field === 'assignment' ? 'totalAssignment' : 'totalCollected'] || '';
+  setTimeout(() => inp.focus(), 50);
+}
+function cancelEdit(field) {
+  document.getElementById(field + 'Display').style.display = '';
+  document.getElementById(field + 'InputWrap').style.display = 'none';
+  document.getElementById(field + 'Btns').style.display = 'flex';
+  document.getElementById(field + 'SaveBtns').style.display = 'none';
+}
+function saveField(field) {
+  const val = parseFloat(document.getElementById(field + 'Input').value) || 0;
+  state[field === 'assignment' ? 'totalAssignment' : 'totalCollected'] = val;
+  cancelEdit(field); persist(); renderTarget();
+}
+function handleKey(e, field) {
+  if (e.key === 'Enter') saveField(field);
+  if (e.key === 'Escape') cancelEdit(field);
+}
+function renderTarget() {
+  const a = state.totalAssignment || 0;
+  const c = state.totalCollected || 0;
+  const target = a * 0.7;
+  const remaining = Math.max(0, target - c);
+  const prog1 = target > 0 ? Math.min(100, (c / target) * 100) : 0;
+  const prog2 = a > 0 ? Math.min(100, (c / a) * 100) : 0;
+  document.getElementById('assignmentDisplay').textContent = fmt(a);
+  document.getElementById('collectedDisplay').textContent = fmt(c);
+  const hasData = a > 0;
+  document.getElementById('summarySection').style.display = hasData ? 'flex' : 'none';
+  document.getElementById('emptyTarget').style.display = hasData ? 'none' : 'block';
+  if (!hasData) return;
+  document.getElementById('s-assignment').textContent = fmt(a);
+  document.getElementById('s-target').textContent = fmt(target);
+  document.getElementById('s-collected').textContent = fmt(c);
+  document.getElementById('s-remaining').textContent = fmt(remaining);
+  document.getElementById('s-remaining').style.color = remaining === 0 ? '#00e676' : '#ef5350';
+  const color = prog1 >= 100 ? '#00e676' : prog1 >= 70 ? '#ffea00' : '#ff6b35';
+  document.getElementById('prog1-pct').textContent = prog1.toFixed(1) + '%';
+  document.getElementById('prog1-pct').style.color = color;
+  document.getElementById('prog1-fill').style.width = prog1 + '%';
+  document.getElementById('prog1-fill').style.background = `linear-gradient(90deg, ${color}aa, ${color})`;
+  document.getElementById('prog1-fill').style.boxShadow = `0 0 12px ${color}66`;
+  document.getElementById('achievedMsg').style.display = prog1 >= 100 ? 'block' : 'none';
+  document.getElementById('prog2-pct').textContent = prog2.toFixed(1) + '%';
+  document.getElementById('prog2-fill').style.width = prog2 + '%';
+}
+function calcComm(rental, collected) {
+  if (!rental || !collected) return { rate: 0, amount: 0, rentals: 0 };
+  const rentals = collected / rental;
+  if (rentals >= 2) return { rate: 3, amount: collected * 0.03, rentals };
+  if (rentals >= 1.2) return { rate: 2, amount: collected * 0.02, rentals };
+  return { rate: 0, amount: 0, rentals };
+}
+function updatePreview() {
+  const rental = parseFloat(document.getElementById('rentalAmt').value) || 0;
+  const collected = parseFloat(document.getElementById('collectedAmt').value) || 0;
+  if (rental > 0) {
+    document.getElementById('minHint').style.display = 'block';
+    document.getElementById('minVal').textContent = fmt(rental * 1.2);
+  } else { document.getElementById('minHint').style.display = 'none'; }
+  if (rental > 0 && collected > 0) {
+    const comm = calcComm(rental, collected);
+    const box = document.getElementById('previewBox');
+    box.style.display = 'block';
+    box.className = 'preview-box ' + (comm.rate > 0 ? 'good' : 'bad');
+    document.getElementById('prev-rentals').textContent = comm.rentals.toFixed(2) + 'x';
+    document.getElementById('prev-rate').textContent = comm.rate > 0 ? comm.rate + '%' : 'Not qualified (< 1.2x)';
+    document.getElementById('prev-rate').style.color = comm.rate > 0 ? '#66bb6a' : '#ef5350';
+    document.getElementById('prev-amt-row').style.display = comm.rate > 0 ? 'flex' : 'none';
+    document.getElementById('prev-amt').textContent = fmt(comm.amount);
+    const btn = document.getElementById('addBtn');
+    if (comm.rate > 0) { btn.className = 'btn-add active'; btn.textContent = '✅ Add ' + fmt(comm.amount) + ' Commission'; }
+    else { btn.className = 'btn-add inactive'; btn.textContent = 'Enter valid amounts to add'; }
+  } else {
+    document.getElementById('previewBox').style.display = 'none';
+    const btn = document.getElementById('addBtn');
+    btn.className = 'btn-add inactive'; btn.textContent = 'Enter valid amounts to add';
+  }
+}
+function addCommission() {
+  const rental = parseFloat(document.getElementById('rentalAmt').value) || 0;
+  const collected = parseFloat(document.getElementById('collectedAmt').value) || 0;
+  const note = document.getElementById('commNote').value.trim();
+  const comm = calcComm(rental, collected);
+  if (comm.rate === 0) return;
+  const entry = {
+    id: Date.now(),
+    date: new Date().toLocaleDateString('en-LK', {day:'2-digit',month:'short',year:'numeric'}),
+    rentalAmount: rental, collectedAmount: collected,
+    rentals: comm.rentals, rate: comm.rate, commissionAmount: comm.amount, note: note,
+  };
+  state.commissions.unshift(entry);
+  persist(); renderCommission(); renderHistory();
+  document.getElementById('rentalAmt').value = '';
+  document.getElementById('collectedAmt').value = '';
+  document.getElementById('commNote').value = '';
+  document.getElementById('previewBox').style.display = 'none';
+  document.getElementById('minHint').style.display = 'none';
+  const btn = document.getElementById('addBtn');
+  btn.className = 'btn-add inactive'; btn.textContent = 'Enter valid amounts to add';
+}
+function renderCommission() {
+  const total = state.commissions.reduce((s, c) => s + c.commissionAmount, 0);
+  document.getElementById('totalCommDisplay').textContent = fmt(total);
+  document.getElementById('commCountDisplay').textContent = state.commissions.length + ' entries';
+}
+function deleteCommission(id) {
+  if (!confirm('Delete this entry?')) return;
+  state.commissions = state.commissions.filter(c => c.id !== id);
+  persist(); renderCommission(); renderHistory();
+}
+function renderHistory() {
+  const total = state.commissions.reduce((s, c) => s + c.commissionAmount, 0);
+  document.getElementById('histTotalDisplay').textContent = 'Total: ' + fmt(total);
+  const list = document.getElementById('historyList');
+  if (state.commissions.length === 0) {
+    list.innerHTML = '<div class="empty">No commission entries yet.<br><span style="font-size:12px">Add entries from the Commission tab.</span></div>';
+    return;
+  }
+  list.innerHTML = state.commissions.map(c => `
+    <div class="history-item" style="margin-bottom:10px">
+      <div class="history-item-left">
+        <div class="history-badges">
+          <span class="rate-badge ${c.rate === 3 ? 'green' : 'yellow'}">${c.rate}%</span>
+          <span class="history-date">${c.date}</span>
+          ${c.note ? `<span class="history-note">• ${c.note}</span>` : ''}
+        </div>
+        <div class="history-amounts">
+          <div class="history-amount-item"><div>Rental Amt</div><div style="color:#90caf9">${fmt(c.rentalAmount)}</div></div>
+          <div class="history-amount-item"><div>Collected</div><div style="color:#e8f0fe">${fmt(c.collectedAmount)}</div></div>
+          <div class="history-amount-item"><div>Rentals</div><div style="color:#78909c">${c.rentals.toFixed(2)}x</div></div>
+        </div>
+      </div>
+      <div class="history-right">
+        <div class="history-comm">${fmt(c.commissionAmount)}</div>
+        <button class="btn-delete" onclick="deleteCommission(${c.id})">🗑 Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+renderTarget(); renderCommission(); renderHistory(); updateLastSaved();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW error:', e));
+  });
+}
+</script>
+</body>
+</html>
